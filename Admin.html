@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loan Shack Admin</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+
+/* ===== BASE ===== */
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial;
+}
+
+body{
+background:#f4f7fb;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar{
+width:260px;
+height:100vh;
+background:#111827;
+position:fixed;
+padding:20px;
+color:white;
+}
+
+.logo{
+font-size:26px;
+font-weight:bold;
+margin-bottom:30px;
+}
+
+.logo span{color:#38bdf8;}
+
+.sidebar ul{list-style:none;}
+
+.sidebar ul li{
+padding:12px;
+color:#cbd5e1;
+cursor:pointer;
+}
+
+.sidebar ul li:hover{
+background:#1e293b;
+border-radius:10px;
+}
+
+/* ===== MAIN ===== */
+.main{
+margin-left:260px;
+padding:25px;
+}
+
+/* TOP */
+.topbar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.profile{
+display:flex;
+align-items:center;
+gap:10px;
+background:white;
+padding:10px;
+border-radius:12px;
+}
+
+/* KPI */
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:15px;
+margin:20px 0;
+}
+
+.card{
+background:white;
+padding:20px;
+border-radius:15px;
+box-shadow:0 3px 10px rgba(0,0,0,0.05);
+}
+
+.card h1{font-size:28px;}
+
+/* TABLE */
+.table{
+background:white;
+padding:20px;
+border-radius:15px;
+margin-top:20px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+th{
+background:#0f172a;
+color:white;
+padding:12px;
+text-align:left;
+}
+
+td{
+padding:12px;
+border-bottom:1px solid #eee;
+}
+
+.btn{
+padding:6px 10px;
+border:none;
+border-radius:6px;
+color:white;
+cursor:pointer;
+}
+
+.view{background:#2563eb;}
+.approve{background:#16a34a;}
+.reject{background:#dc2626;}
+
+/* DOCUMENTS */
+.docs{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:15px;
+}
+
+.doc{
+background:white;
+padding:15px;
+border-radius:12px;
+}
+
+/* ACTIVITY */
+.activity{
+background:white;
+padding:20px;
+border-radius:12px;
+margin-top:20px;
+}
+
+.item{
+display:flex;
+gap:10px;
+margin-bottom:10px;
+}
+
+.dot{
+width:10px;
+height:10px;
+border-radius:50%;
+margin-top:6px;
+}
+
+.green{background:green;}
+.red{background:red;}
+.yellow{background:orange;}
+
+</style>
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+<div class="logo">Loan <span>Shack</span></div>
+
+<ul>
+<li><i class="fa fa-chart-line"></i> Dashboard</li>
+<li><i class="fa fa-file"></i> Applications</li>
+<li><i class="fa fa-money-bill"></i> Loans</li>
+<li><i class="fa fa-users"></i> Clients</li>
+<li><i class="fa fa-folder"></i> Documents</li>
+<li><i class="fa fa-chart-pie"></i> Reports</li>
+<li><i class="fa fa-cog"></i> Settings</li>
+</ul>
+
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<div class="topbar">
+<div>
+<h1>Admin Dashboard</h1>
+<p>Manage loans, applications and repayments</p>
+</div>
+
+<div class="profile">
+<img src="https://i.imgur.com/6VBx3io.png" width="40">
+<div>
+<b>Administrator</b><br>
+<small>Owner</small>
+</div>
+</div>
+</div>
+
+<!-- KPI -->
+<div class="cards">
+
+<div class="card">
+<h3>Total Applications</h3>
+<h1 id="apps">0</h1>
+</div>
+
+<div class="card">
+<h3>Total Amount Owed</h3>
+<h1 id="owed">R0</h1>
+</div>
+
+<div class="card">
+<h3>Interest Earned</h3>
+<h1 id="interest">R0</h1>
+</div>
+
+<div class="card">
+<h3>Overdue Clients</h3>
+<h1 id="overdue">0</h1>
+</div>
+
+</div>
+
+<!-- APPLICATIONS -->
+<div class="table">
+
+<h2>Loan Applications</h2>
+<br>
+
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Client</th>
+<th>Amount</th>
+<th>Interest</th>
+<th>Status</th>
+<th>Actions</th>
+</tr>
+</thead>
+
+<tbody id="tbody"></tbody>
+</table>
+
+</div>
+
+<!-- DOCUMENTS -->
+<div class="table">
+<h2>Verification Documents</h2>
+<br>
+<div class="docs" id="docs"></div>
+</div>
+
+<!-- ACTIVITY -->
+<div class="activity">
+<h2>Recent Activity</h2>
+<div id="activity"></div>
+</div>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+getFirestore,
+collection,
+getDocs,
+updateDoc,
+doc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCV4nx2NddXGy930xoAXa4u7tON_CYrM8Q",
+  authDomain: "loan-shack-21e5e.firebaseapp.com",
+  projectId: "loan-shack-21e5e",
+  storageBucket: "loan-shack-21e5e.firebasestorage.app",
+  messagingSenderId: "937892872126",
+  appId: "1:937892872126:web:78436004dacd60fc94c3ef",
+  measurementId: "G-1798P1BH3S"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let all = [];
+
+async function load(){
+
+const snap = await getDocs(collection(db,"loan_submissions"));
+
+let tbody = document.getElementById("tbody");
+
+let apps=0, owed=0, interest=0, overdue=0;
+
+tbody.innerHTML = "";
+
+snap.forEach(d=>{
+
+let data = d.data();
+all.push({id:d.id,...data});
+
+apps++;
+owed += Number(data.totalOwed||0);
+interest += Number(data.totalOwed - data.principal || 0);
+
+if(data.status==="Overdue") overdue++;
+
+tbody.innerHTML += `
+<tr>
+<td>${d.id}</td>
+<td>${data.fullName}</td>
+<td>R${data.principal}</td>
+<td>R${data.totalOwed - data.principal}</td>
+<td>${data.status}</td>
+<td>
+<button class="btn view" onclick="viewApp('${d.id}')">View</button>
+<button class="btn approve" onclick="update('${d.id}','Approved')">Approve</button>
+<button class="btn reject" onclick="update('${d.id}','Rejected')">Reject</button>
+</td>
+</tr>
+`;
+});
+
+// KPI
+document.getElementById("apps").innerText=apps;
+document.getElementById("owed").innerText="R"+owed;
+document.getElementById("interest").innerText="R"+interest;
+document.getElementById("overdue").innerText=overdue;
+
+// DOCUMENTS
+let docs = document.getElementById("docs");
+docs.innerHTML="";
+
+all.forEach(d=>{
+docs.innerHTML += `
+<div class="doc">
+<b>${d.fullName}</b>
+<p>ID & Payslip uploaded</p>
+<a href="${d.documents.idCopy}" target="_blank">View</a>
+</div>
+`;
+});
+
+// ACTIVITY
+document.getElementById("activity").innerHTML = `
+<div class="item"><div class="dot green"></div> Loan approved recently</div>
+<div class="item"><div class="dot yellow"></div> New application received</div>
+<div class="item"><div class="dot red"></div> Missed payment detected</div>
+`;
+
+}
+
+window.update = async function(id,status){
+await updateDoc(doc(db,"loan_submissions",id),{status});
+load();
+}
+
+window.viewApp = function(id){
+let d = all.find(x=>x.id===id);
+alert(`${d.fullName}\nR${d.principal}\n${d.email}`);
+}
+
+load();
+
+</script>
+
+</body>
+</html>
